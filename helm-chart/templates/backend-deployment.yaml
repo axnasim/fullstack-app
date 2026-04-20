@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fullstack-app.fullname" . }}-backend
+  labels:
+    {{- include "fullstack-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "fullstack-app.fullname" . }}-backend
+  template:
+    metadata:
+      labels:
+        app: {{ include "fullstack-app.fullname" . }}-backend
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          env:
+            - name: PORT
+              value: {{ .Values.backend.port | quote }}
+            - name: PG_HOST
+              value: {{ .Values.backend.env.PG_HOST | quote }}
+            - name: PG_PORT
+              value: {{ .Values.backend.env.PG_PORT | quote }}
+            - name: PG_DB
+              value: {{ .Values.backend.env.PG_DB | quote }}
+            - name: PG_USER
+              value: {{ .Values.backend.env.PG_USER | quote }}
+            - name: PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fullstack-app.fullname" . }}-postgres-secret
+                  key: password
+            - name: REDIS_URL
+              value: {{ .Values.backend.env.REDIS_URL | quote }}
+            - name: CORS_ORIGIN
+              value: {{ .Values.backend.env.CORS_ORIGIN | quote }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}

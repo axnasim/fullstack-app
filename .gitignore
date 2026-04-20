@@ -1,0 +1,7 @@
+.venv/
+node_modules/
+*.png
+.fstck
+architecture.py
+dev.sh
+.idea/

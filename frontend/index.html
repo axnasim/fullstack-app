@@ -1,0 +1,317 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fullstack App — Live Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3d;
+      --accent:    #6c63ff;
+      --accent2:   #00d4aa;
+      --text:      #e8eaf6;
+      --muted:     #8b8fa8;
+      --green:     #00d4aa;
+      --red:       #ff5370;
+      --radius:    12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    header .logo {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 22px;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; }
+    header p  { color: var(--muted); font-size: .9rem; margin-top: 2px; }
+
+    .pill {
+      margin-left: auto;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 600;
+      background: color-mix(in srgb, var(--green) 15%, transparent);
+      color: var(--green);
+      border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pill.error { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); border-color: color-mix(in srgb, var(--red) 30%, transparent); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .card .label { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+    .card .value { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+    .card .sub   { color: var(--muted); font-size: .8rem; margin-top: 6px; }
+    .card.accent { border-color: var(--accent); }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media(max-width:720px){ .panels { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .panel h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th    { color: var(--muted); font-weight: 500; text-align: left; padding: 6px 0; border-bottom: 1px solid var(--border); }
+    td    { padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: .75rem;
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      color: var(--accent);
+    }
+
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .bar-row:last-child { margin-bottom: 0; }
+    .bar-label { width: 90px; font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-wrap  { flex: 1; background: var(--border); border-radius: 999px; height: 8px; }
+    .bar-fill  { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .6s ease; }
+    .bar-count { font-size: .8rem; color: var(--muted); min-width: 28px; text-align: right; }
+
+    .btn {
+      margin-top: 24px;
+      padding: 10px 22px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:active { opacity: .7; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 12px 20px; border-radius: 10px;
+      font-size: .85rem; opacity: 0; transition: opacity .3s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🚀</div>
+  <div>
+    <h1>Live Dashboard</h1>
+    <p>Fullstack App · Express · PostgreSQL · Redis</p>
+  </div>
+  <div class="pill" id="status-pill">
+    <span class="dot"></span> Connecting…
+  </div>
+</header>
+
+<!-- Stat cards -->
+<div class="grid">
+  <div class="card accent">
+    <div class="label">Total Visits</div>
+    <div class="value" id="stat-total">—</div>
+    <div class="sub">All time, from Redis</div>
+  </div>
+  <div class="card">
+    <div class="label">Recent (last 10)</div>
+    <div class="value" id="stat-recent">—</div>
+    <div class="sub">Unique paths visited</div>
+  </div>
+  <div class="card">
+    <div class="label">Top Path</div>
+    <div class="value" id="stat-top-path" style="font-size:1.3rem">—</div>
+    <div class="sub" id="stat-top-count">—</div>
+  </div>
+  <div class="card">
+    <div class="label">Last Refresh</div>
+    <div class="value" id="stat-time" style="font-size:1.1rem">—</div>
+    <div class="sub">Auto-refreshes every 5s</div>
+  </div>
+</div>
+
+<!-- Detail panels -->
+<div class="panels">
+  <div class="panel">
+    <h2>📊 Top Paths</h2>
+    <div id="top-paths-chart"></div>
+  </div>
+  <div class="panel">
+    <h2>🕐 Recent Visits</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Path</th>
+          <th>IP</th>
+          <th>When</th>
+        </tr>
+      </thead>
+      <tbody id="recent-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<button class="btn" id="record-btn" onclick="recordVisit()">
+  ➕ Record a Visit
+</button>
+
+<div id="toast"></div>
+
+<script>
+  const API = (window.API_BASE || "http://localhost:3000");
+
+  async function fetchStats() {
+    try {
+      const res = await fetch(`${API}/api/stats`);
+      if (!res.ok) throw new Error(res.statusText);
+      const data = await res.json();
+      renderStats(data);
+      setStatus(true);
+    } catch (e) {
+      setStatus(false);
+      console.error(e);
+    }
+  }
+
+  function renderStats(data) {
+    document.getElementById("stat-total").textContent  = data.total_visits.toLocaleString();
+    document.getElementById("stat-recent").textContent = data.recent_visits.length;
+    document.getElementById("stat-time").textContent   = new Date().toLocaleTimeString();
+
+    if (data.top_paths.length) {
+      const top = data.top_paths[0];
+      document.getElementById("stat-top-path").textContent  = top.path;
+      document.getElementById("stat-top-count").textContent = `${top.count} visits`;
+    }
+
+    // Bar chart
+    const maxCount = Math.max(...data.top_paths.map(p => parseInt(p.count)), 1);
+    const chart = document.getElementById("top-paths-chart");
+    chart.innerHTML = data.top_paths.map(p => {
+      const pct = Math.round((parseInt(p.count) / maxCount) * 100);
+      return `
+        <div class="bar-row">
+          <span class="bar-label" title="${p.path}">${p.path}</span>
+          <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <span class="bar-count">${p.count}</span>
+        </div>`;
+    }).join("") || "<p style='color:var(--muted);font-size:.85rem'>No data yet — record a visit!</p>";
+
+    // Recent table
+    const tbody = document.getElementById("recent-table");
+    tbody.innerHTML = data.recent_visits.map(v => `
+      <tr>
+        <td><span class="badge">${v.path}</span></td>
+        <td style="color:var(--muted)">${(v.ip || "").replace("::ffff:", "").slice(0,15)}</td>
+        <td style="color:var(--muted)">${timeAgo(v.created_at)}</td>
+      </tr>`).join("") || `<tr><td colspan="3" style="color:var(--muted)">No visits yet</td></tr>`;
+  }
+
+  async function recordVisit() {
+    const btn = document.getElementById("record-btn");
+    btn.innerHTML = '<span class="spinner"></span> Recording…';
+    btn.disabled = true;
+    const paths = ["/", "/about", "/products", "/contact", "/blog", "/api/demo"];
+    const path  = paths[Math.floor(Math.random() * paths.length)];
+    try {
+      const res  = await fetch(`${API}/api/visit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      const data = await res.json();
+      showToast(`✅ Visit recorded for ${path} · Total: ${data.total_visits}`);
+      fetchStats();
+    } catch (e) {
+      showToast("❌ Could not record visit — is the backend running?");
+    } finally {
+      btn.innerHTML = "➕ Record a Visit";
+      btn.disabled = false;
+    }
+  }
+
+  function setStatus(ok) {
+    const pill = document.getElementById("status-pill");
+    pill.textContent = "";
+    const dot  = document.createElement("span"); dot.className = "dot";
+    pill.appendChild(dot);
+    pill.appendChild(document.createTextNode(ok ? " API Connected" : " API Unreachable"));
+    pill.className = ok ? "pill" : "pill error";
+  }
+
+  function timeAgo(iso) {
+    const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+    if (diff < 60)   return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    return `${Math.floor(diff/3600)}h ago`;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3500);
+  }
+
+  // Boot
+  fetchStats();
+  setInterval(fetchStats, 5000);
+</script>
+</body>
+</html>
